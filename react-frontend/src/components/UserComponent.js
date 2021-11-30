@@ -1,38 +1,64 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 // import UserService from '../services/UserService';
 import { AgGridReact } from 'ag-grid-react';  
 import 'ag-grid-community/dist/styles/ag-grid.css';  
 import 'ag-grid-community/dist/styles/ag-theme-alpine.css'; 
-import { AgGridColumn } from 'ag-grid-react/lib/shared/agGridColumn';
+import { Link } from 'react-router-dom';
+import userService from '../services/user.service';
 
 export function UserComponent() {
 
-    const [rowData, setRowData] = useState();
+    const [rowData, setRowData] = useState([]);
 
-    React.useEffect(() => {
-        fetch('http://localhost:8080/api/users')
-            .then(res => res.json())
-            .then(rowData => setRowData(rowData))
-    })
+    const columnDefs = [
+        { headerName: "ID", field:"id", cellClass: "grid-cell-centered" },
+        { headerName: "First", field:"firstName", cellClass: "grid-cell-centered" },
+        { headerName: "Last", field:"lastName", cellClass: "grid-cell-centered" },
+        { headerName: "Email", field:"email", cellClass: "grid-cell-centered" },
+        {
+            headerName: "Actions", field: "actions", cellClass: "grid-cell-centered",
+            cellRendererFramework: (params) =>
+                <div>
+                    <Link className="btn btn-info" to={`/users/edit/${params.data.id}`}>Update</Link>
+                    <button className="btn btn-danger ml-2" onClick={() => handleDelete(params.data.id)}>Delete</button>
+                </div>
+        },
+    ]
 
+    useEffect(() => {
+        init();
+    }, [])
+    
+    const init = () => {
+        userService.getAll()
+        .then(response => {
+          console.log('print users data', response.data);
+          setRowData(response.data);
+        }).catch(error => console.log('Something went wrong', error)) 
+    }
+    
+    const handleDelete = id => {
+        userService.remove(id)
+            .then(res => {
+                console.log("deleted successfully", res.data);
+                init();
+            }).catch(error => console.log('Something went wrong', error))
+    }
 
     return (
         <div
             className="ag-theme-alpine"
             style={{
-                width: 800,
+                width: 1000,
                 height: 600
             }}
         >
+            <Link to="/add" className="btn btn-primary mb-2">Add User</Link>
             <AgGridReact
-                defaultColDef = {{sortable: true, filter: true}}
+                defaultColDef={{ sortable: true, filter: true }}
+                columnDefs={columnDefs}
                 rowData = {rowData}
             >
-                <AgGridColumn field="id"></AgGridColumn>
-                <AgGridColumn field="firstName"></AgGridColumn>
-                <AgGridColumn field="lastName"></AgGridColumn>
-                <AgGridColumn field="email"></AgGridColumn>
-
             </AgGridReact>
         </div>
     )
